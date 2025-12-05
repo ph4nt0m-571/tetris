@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Versus</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background: #20202b;
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            font-family: sans-serif;
+            font-size: 2em;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        #header {
+            padding: 1rem;
+            background: #16161e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.6em;
+        }
+
+        #user-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        #game-area {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .player {
+            flex: 1 1 auto;
+            border: 2px solid transparent;
+            padding: 1rem;
+        }
+
+        .player.local {
+            border-color: #0f0;
+        }
+
+        canvas {
+            border: solid .2em #fff;
+            height: 70vh;
+        }
+
+        #session-info {
+            padding: 0.5rem;
+            background: #2a2a3a;
+            font-size: 0.5em;
+        }
+
+        .btn-logout {
+            padding: 0.5rem 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn-logout:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div>
+            <h2 style="margin: 0;">Tetris Versus</h2>
+        </div>
+        <div id="user-info">
+            <span id="username-display"></span>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div id="session-info">
+        <span id="session-id-display"></span>
+    </div>
+
+    <div id="game-area">
+        <template id="player-template">
+            <div class="player">
+                <div class="score"></div>
+                <canvas class="tetris" width="240" height="400"></canvas>
+            </div>
+        </template>
+    </div>
+
+    <script src="/client/events.js"></script>
+    <script src="/client/tetrisManager.js"></script>
+    <script src="/client/connectionManager.js"></script>
+    <script src="/client/player.js"></script>
+    <script src="/client/arena.js"></script>
+    <script src="/client/tetris.js"></script>
+    <script src="/client/main.js"></script>
+
+    <script>
+        // Checks authentication
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || !user.username) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('username-display').textContent = `Welcome, ${user.username}!`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Display session ID when available
+        window.addEventListener('hashchange', () => {
+            const sessionId = window.location.hash.split('#')[1];
+            if (sessionId) {
+                document.getElementById('session-id-display').textContent = 
+                    `Session ID: ${sessionId} (Share this with your opponent!)`;
+            }
+        });
+    </script>
+</body>
+</html>
