@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Versus - Home</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .home-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .home-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .home-box h1 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+
+        .welcome-text {
+            color: #333;
+            margin: 10px 0 30px 0;
+            font-size: 1.2em;
+        }
+
+        .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn-home {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-play {
+            background: linear-gradient(135deg, #2cb45a 0%, #a2c426 100%);
+            color: white;
+        }
+
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-profile {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-logout-home {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-logout-home:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .profile-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .profile-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .profile-content h2 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .stat-value {
+            color: #333;
+        }
+
+        .btn-close-modal {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-close-modal:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <div class="home-box">
+            <h1>🎮 Tetris Versus</h1>
+            <p class="welcome-text">Welcome, <span id="username-display"></span>!</p>
+            
+            <div class="home-buttons">
+                <button class="btn-home btn-play" onclick="goToLobby()">
+                    ▶ Play Multiplayer
+                </button>
+                <button class="btn-home btn-profile" onclick="showProfile()">
+                    👤 View Profile
+                </button>
+                <button class="btn-home btn-logout-home" onclick="logout()">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="profile-modal">
+        <div class="profile-content">
+            <h2>Player Profile</h2>
+            <div class="stat-item">
+                <span class="stat-label">Username:</span>
+                <span class="stat-value" id="profile-username"></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Email:</span>
+                <span class="stat-value" id="profile-email"></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Member Since:</span>
+                <span class="stat-value" id="profile-created"></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Games Played:</span>
+                <span class="stat-value" id="profile-games">Loading...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Wins:</span>
+                <span class="stat-value" id="profile-wins">Loading...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Win Rate:</span>
+                <span class="stat-value" id="profile-winrate">Loading...</span>
+            </div>
+            <button class="btn-close-modal" onclick="closeProfile()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || !user.username) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('username-display').textContent = user.username;
+        }
+
+        function goToLobby() {
+            window.location.href = 'lobby.html';
+        }
+
+        async function showProfile() {
+            const modal = document.getElementById('profile-modal');
+            modal.style.display = 'flex';
+
+            // Populate basic info
+            document.getElementById('profile-username').textContent = user.username;
+            document.getElementById('profile-email').textContent = user.email || 'N/A';
+            document.getElementById('profile-created').textContent = user.created_at ? 
+                new Date(user.created_at).toLocaleDateString() : 'N/A';
+
+            try {
+                const response = await fetch(`/api/stats/${user.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const stats = await response.json();
+                console.log('Stats received:', stats);
+                
+                // Ensure we have valid numbers
+                const totalGames = parseInt(stats.total_games) || 0;
+                const totalWins = parseInt(stats.total_wins) || 0;
+                
+                document.getElementById('profile-games').textContent = totalGames;
+                document.getElementById('profile-wins').textContent = totalWins;
+                document.getElementById('profile-winrate').textContent = 
+                    totalGames > 0 ? 
+                    `${Math.round((totalWins / totalGames) * 100)}%` : '0%';
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+                document.getElementById('profile-games').textContent = 'Error';
+                document.getElementById('profile-wins').textContent = 'Error';
+                document.getElementById('profile-winrate').textContent = 'Error';
+            }
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('profile-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'profile-modal') {
+                closeProfile();
+            }
+        });
+    </script>
+</body>
+</html>

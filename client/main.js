@@ -1,13 +1,26 @@
 const tetrisManager = new TetrisManager(document);
 const localTetris = tetrisManager.createPlayer();
 localTetris.element.classList.add('local');
+
+// Update label for local player
+const localLabel = localTetris.element.querySelector('.player-label');
+if (localLabel) {
+    localLabel.textContent = 'You';
+}
+
+// Start the local game
 localTetris.run();
 
 const connectionManager = new ConnectionManager(tetrisManager);
-connectionManager.connect('ws://localhost:9000');
+// Connect without specifying address - will use same port as HTTP
+connectionManager.connect();
 connectionManager.localTetris = localTetris;
 
+let isLocalPlayerAlive = true;
+
 const keyListener = (event) => {
+    if (!isLocalPlayerAlive) return;
+    
     [
         [37, 39, 40, 67],
         [65, 68, 83, 16],

@@ -4,9 +4,23 @@ class ConnectionManager{
         this.peers = new Map();
         this.tetrisManager = tetrisManager;
         this.localTetris = null;
+        this.sessionFromLobby = false;
     }
 
     connect(address){
+        // If no address provided, use same host/port as HTTP
+        if (!address) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            address = `${protocol}//${window.location.host}`;
+        }
+        
+        const sessionId = window.location.hash.split('#')[1];
+        if(sessionId){
+            this.sessionFromLobby = true;
+            console.log('Coming from lobby with session:', sessionId);
+        }
+        
+        console.log('Connecting to WebSocket:', address);
         this.conn = new WebSocket(address);
 
         this.conn.addEventListener('open', () => {
@@ -16,21 +30,31 @@ class ConnectionManager{
         });
 
         this.conn.addEventListener('message', (event) => {
-            console.log('Message received:', event.data);
             this.receive(event.data);
+        });
+
+        this.conn.addEventListener('error', (error) => {
+            console.error('WebSocket connection error:', error);
+        });
+
+        this.conn.addEventListener('close', () => {
+            console.log('WebSocket connection closed');
         });
     }
     
     initSession(){
         const sessionId = window.location.hash.split('#')[1];
         const state = this.localTetris.serialize();
+        
         if(sessionId){
+            console.log('Joining session from URL:', sessionId);
             this.send({
                 type: 'join-session',
                 id: sessionId,
                 state,
             });
         }else{
+            console.log('Creating new session');
             this.send({
                 type:'create-session',
                 state,
@@ -41,24 +65,51 @@ class ConnectionManager{
     watchEvents(){
         const player = this.localTetris.player;
         
-        ['pos', 'matrix', 'score'].forEach(prop => {
-            player.events.listen(prop, value => {
-                this.send({
-                    type: 'state-update',
-                    fragment: 'player',
-                    state: [prop, value],
-                });
+        // Watch position changes
+        player.events.listen('pos', value => {
+            this.send({
+                type: 'state-update',
+                fragment: 'player',
+                state: ['pos', value],
             });
+        });
+        
+        // Watch matrix changes
+        player.events.listen('matrix', value => {
+            this.send({
+                type: 'state-update',
+                fragment: 'player',
+                state: ['matrix', value],
+            });
+        });
+        
+        player.events.listen('score', (value, linesCleared) => {
+            this.send({
+                type: 'state-update',
+                fragment: 'player',
+                state: ['score', value],
+                linesCleared: linesCleared || 0
+            });
+        });
+        
+        player.events.listen('game-over', () => {
+            console.log('Local player died!');
+            isLocalPlayerAlive = false; // Set global flag
+            
+            // Notify server
+            this.send({
+                type: 'player-died'
+            });
+            
+            this.showDeathOverlay();
         });
 
         const arena = this.localTetris.arena;
-        ['matrix'].forEach(prop => {
-            arena.events.listen(prop, value => {
-                this.send({
-                    type: 'state-update',
-                    fragment: 'arena',
-                    state: [prop, value],
-                });
+        arena.events.listen('matrix', value => {
+            this.send({
+                type: 'state-update',
+                fragment: 'arena',
+                state: ['matrix', value],
             });
         });
     }
@@ -66,11 +117,28 @@ class ConnectionManager{
     updateManager(peers){
         const me = peers.you;
         const clients = peers.clients.filter(client => me !== client.id);
+        
         clients.forEach(client => {
             if(!this.peers.has(client.id)){
                 const tetris = this.tetrisManager.createPlayer();
+                
+                // Mark as remote player
+                tetris.element.classList.add('remote');
+                tetris.element.classList.remove('local');
+                
+                // Update player label to show opponent
+                const label = tetris.element.querySelector('.player-label');
+                if (label) {
+                    label.textContent = 'Opponent';
+                }
+                
+                // Unserialize the state
                 tetris.unserialize(client.state);
+                
+                // Add to peers map
                 this.peers.set(client.id, tetris);
+                
+                console.log('Created opponent player view');
             }
         });
 
@@ -89,40 +157,134 @@ class ConnectionManager{
 
     updatePeer(id, fragment, [prop, value]){
         if(!this.peers.has(id)){
-            throw new Error('Client does not exist', id);
+            console.warn('Client does not exist:', id);
+            return;
         }
 
         const tetris = this.peers.get(id);
+        
+        // Update the state
         tetris[fragment][prop] = value;
 
         if(prop === 'score'){
             tetris.updateScore(value);
-        }else{
+        } else {
+            // Redraw the opponent's board
             tetris.draw();
         }
     }
 
     receive(msg){
         const data = JSON.parse(msg);
+        
         if(data.type === 'session-created'){
             console.log('Session created:', data.id);
-            window.location.hash = data.id;
-        } else if(data.type === 'session-broadcast'){
+            if(!this.sessionFromLobby){
+                window.location.hash = data.id;
+            }
+        } 
+        else if(data.type === 'session-broadcast'){
             this.updateManager(data.peers);
-        } else if(data.type === 'state-update'){
+        } 
+        else if(data.type === 'state-update'){
             this.updatePeer(data.clientId, data.fragment, data.state);
-        } else if(data.type === 'session-error'){
+        } 
+        else if(data.type === 'session-error'){
             console.error('Session error:', data.message);
             window.location.hash = '';
             this.send({
                 type: 'create-session',
             });
         }
+        else if(data.type === 'garbage-attack'){
+            console.log(`Receiving ${data.lines} garbage lines!`);
+            this.localTetris.arena.addGarbage(data.lines);
+        }
+        else if(data.type === 'player-died'){
+            console.log('Opponent died');
+            const opponentTetris = this.peers.get(data.playerId);
+            if(opponentTetris){
+                const status = opponentTetris.element.querySelector('.game-status');
+                if(status){
+                    status.textContent = 'DEAD';
+                    status.style.color = '#ff0000';
+                }
+            }
+        }
+        else if(data.type === 'game-over'){
+            console.log('Game over!', data.winner);
+            this.showGameOverScreen(data.winner);
+        }
+        else if(data.type === 'return-to-lobby'){
+            console.log('Returning to lobby...');
+            window.location.href = 'lobby.html';
+        }
     }
 
     send(data){
-        const msg = JSON.stringify(data);
-        console.log(`sending message ${msg}`);
-        this.conn.send(msg);
+        if (this.conn && this.conn.readyState === WebSocket.OPEN) {
+            const msg = JSON.stringify(data);
+            this.conn.send(msg);
+        }
+    }
+    
+    showDeathOverlay(){
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+        `;
+        overlay.textContent = 'YOU DIED';
+        document.body.appendChild(overlay);
+    }
+    
+    showGameOverScreen(winner){
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const isWinner = winner.username === user.username;
+        
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            text-align: center;
+        `;
+        
+        overlay.innerHTML = `
+            <div style="font-size: 4em; font-weight: bold; margin-bottom: 20px; color: ${isWinner ? '#0f0' : '#ff6b6b'}">
+                ${isWinner ? 'VICTORY!' : 'DEFEAT'}
+            </div>
+            <div style="font-size: 2em; margin-bottom: 20px;">
+                Winner: ${winner.username}
+            </div>
+            <div style="font-size: 1.5em; margin-bottom: 40px;">
+                Final Score: ${winner.score}
+            </div>
+            <div style="font-size: 1.2em; color: #aaa;">
+                Returning to lobby in 5 seconds...
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
     }
 }

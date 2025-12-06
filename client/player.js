@@ -39,10 +39,14 @@ class Player{
     this.pos.x = (this.arena.matrix[0].length / 2 | 0) -
     (this.matrix[0].length / 2 | 0);
 
-    if (this.arena.collide(this)){
+    if (this.arena.collide(this) && this.score > 0){
         this.arena.clear();
         this.score = 0;
         this.tetris.updateScore(this.score);
+        
+        // Emit game over event
+        this.events.emit('game-over');
+        return; // Don't emit pos/matrix if game is over
     }
 
     this.events.emit('pos', this.pos);
@@ -94,8 +98,12 @@ class Player{
         this.pos.y--;
         this.arena.merge(this);
         this.reset();
-        this.score += this.arena.sweep();
-        this.events.emit('score', this.score);
+        
+        const sweepResult = this.arena.sweep();
+        this.score += sweepResult.score;
+        
+        // Emit score with lines cleared info
+        this.events.emit('score', this.score, sweepResult.linesCleared);
         this.tetris.updateScore(this.score);
     }
     this.dropCounter=0;

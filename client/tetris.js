@@ -20,6 +20,7 @@ class Tetris{
             'cyan',
             'green',
             'red',
+            'grey',
         ];
 
         let lastTime=0;
@@ -83,7 +84,7 @@ matrix.forEach((row, y)=>{
 }
 
 updateScore(score){
-    this.element.querySelector('.score').innerText = score;
+    this.element.querySelector('.score').innerText = `Score: ${score}`;
 }
 
 

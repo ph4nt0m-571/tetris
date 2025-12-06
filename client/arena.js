@@ -13,6 +13,8 @@ sweep()
 {
     let rowCount = 1;
     let score = 0;
+    let linesCleared = 0;
+    
    outer: for(let y = this.matrix.length - 1; y > 0; y--){
         for(let x = 0; x < this.matrix[y].length; x++){
             if (this.matrix[y][x] === 0){
@@ -26,8 +28,11 @@ sweep()
 
         score += rowCount * 10;
         rowCount *= 2;
+        linesCleared++;
     }
-    return score;
+    
+    // Return both score and lines cleared
+    return { score, linesCleared };
 }
 
 clear(){
@@ -59,6 +64,22 @@ collide(player){
         }
     }
     return false;
+}
+
+addGarbage(lines){
+    // Remove top rows
+    this.matrix.splice(0, lines);
+    
+    // Add garbage rows at bottom
+    for(let i = 0; i < lines; i++){
+        const garbageRow = new Array(this.matrix[0].length).fill(8); // 8 = garbage color
+        // Add one random hole in each garbage line
+        const holePos = Math.floor(Math.random() * this.matrix[0].length);
+        garbageRow[holePos] = 0;
+        this.matrix.push(garbageRow);
+    }
+    
+    this.events.emit('matrix', this.matrix);
 }
 
 
