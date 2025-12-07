@@ -1,7 +1,7 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
-console.log('DB Config:',{
+console.log('DB Config:', {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     database: process.env.DB_NAME,
@@ -10,8 +10,8 @@ console.log('DB Config:',{
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
+    user: process.env.DB_USER || 'student',
+    password: process.env.DB_PASSWORD || 'Student123!',
     database: process.env.DB_NAME || 'tetris_versus',
     waitForConnections: true,
     connectionLimit: 10,

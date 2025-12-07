@@ -48,6 +48,7 @@ class ConnectionManager{
         
         if(sessionId){
             console.log('Joining session from URL:', sessionId);
+            // Always try to join existing session first
             this.send({
                 type: 'join-session',
                 id: sessionId,
@@ -191,10 +192,9 @@ class ConnectionManager{
         } 
         else if(data.type === 'session-error'){
             console.error('Session error:', data.message);
-            window.location.hash = '';
-            this.send({
-                type: 'create-session',
-            });
+            // Don't auto-create session, go back to lobby
+            alert('Could not join game session. Returning to lobby...');
+            window.location.href = 'lobby.html';
         }
         else if(data.type === 'garbage-attack'){
             console.log(`Receiving ${data.lines} garbage lines!`);
@@ -213,7 +213,9 @@ class ConnectionManager{
         }
         else if(data.type === 'game-over'){
             console.log('Game over!', data.winner);
-            this.showGameOverScreen(data.winner);
+            // Stop local game
+            this.localTetris.player.gameActive = false;
+            this.showGameOverScreen(data.winner, data.loser);
         }
         else if(data.type === 'return-to-lobby'){
             console.log('Returning to lobby...');
@@ -249,9 +251,9 @@ class ConnectionManager{
         document.body.appendChild(overlay);
     }
     
-    showGameOverScreen(winner){
+    showGameOverScreen(winner, loser){
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const isWinner = winner.username === user.username;
+        const isWinner = winner && winner.username === user.username;
         
         const overlay = document.createElement('div');
         overlay.style.cssText = `
@@ -275,13 +277,13 @@ class ConnectionManager{
                 ${isWinner ? 'VICTORY!' : 'DEFEAT'}
             </div>
             <div style="font-size: 2em; margin-bottom: 20px;">
-                Winner: ${winner.username}
+                Winner: ${winner ? winner.username : 'None'}
             </div>
             <div style="font-size: 1.5em; margin-bottom: 40px;">
-                Final Score: ${winner.score}
+                Final Score: ${winner ? winner.score : 0}
             </div>
             <div style="font-size: 1.2em; color: #aaa;">
-                Returning to lobby in 5 seconds...
+                Returning to lobby in 3 seconds...
             </div>
         `;
         
