@@ -37,9 +37,11 @@
             display: flex;
             flex: 1;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             gap: 2rem;
             padding: 2rem;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .player {
@@ -92,7 +94,8 @@
 
         canvas {
             border: solid .2em #fff;
-            height: 60vh;
+            height: 50vh;
+            max-height: 400px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
 
@@ -169,7 +172,7 @@
         <div id="user-info">
             <div class="music-controls">
                 <button class="btn-music" id="music-toggle" onclick="toggleMusic()">
-                    🔊 Music On
+                    Music On
                 </button>
                 <input 
                     type="range" 
@@ -204,7 +207,6 @@
     <!-- Background Music -->
     <audio id="background-music" loop>
         <source src="/audio/tetris-theme.mp3" type="audio/mpeg">
-        <source src="/audio/tetris-theme.ogg" type="audio/ogg">
     </audio>
 
     <script src="/client/events.js"></script>
@@ -216,7 +218,7 @@
     <script src="/client/main.js"></script>
 
     <script>
-        // Checks authentication
+        //Checks authentication
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -226,25 +228,25 @@
             document.getElementById('username-display').textContent = `Welcome, ${user.username}!`;
         }
 
-        // Background music control
+        //Background music control
         const bgMusic = document.getElementById('background-music');
         const musicToggle = document.getElementById('music-toggle');
         let isMusicPlaying = false;
 
-        // Set initial volume
-        bgMusic.volume = 0.5;
+        //Set initial volume
+        bgMusic.volume = 0;
 
         function toggleMusic() {
             if (isMusicPlaying) {
                 bgMusic.pause();
-                musicToggle.textContent = '🔇 Music Off';
+                musicToggle.textContent = 'Music Off';
                 isMusicPlaying = false;
             } else {
                 bgMusic.play().catch(e => {
                     console.log('Audio play failed:', e);
                     alert('Please interact with the page to enable music');
                 });
-                musicToggle.textContent = '🔊 Music On';
+                musicToggle.textContent = 'Music On';
                 isMusicPlaying = true;
             }
         }
@@ -253,15 +255,15 @@
             bgMusic.volume = value / 100;
         }
 
-        // Auto-play music when game starts (after user interaction)
-        document.addEventListener('keydown', function playMusicOnInteraction() {
-            if (!isMusicPlaying) {
-                bgMusic.play().catch(e => console.log('Auto-play prevented'));
-                isMusicPlaying = true;
-                musicToggle.textContent = '🔊 Music On';
-            }
-            document.removeEventListener('keydown', playMusicOnInteraction);
-        }, { once: true });
+        //Auto-play music when game starts (after user interaction)
+        //document.addEventListener('keydown', function playMusicOnInteraction() {
+        //    if (!isMusicPlaying) {
+        //        bgMusic.play().catch(e => console.log('Auto-play prevented'));
+        //        isMusicPlaying = true;
+        //        musicToggle.textContent = 'Music On';
+        //    }
+        //    document.removeEventListener('keydown', playMusicOnInteraction);
+        //}, { once: true });
 
         function logout() {
             if (isMusicPlaying) {
@@ -272,7 +274,7 @@
             window.location.href = 'login.html';
         }
 
-        // Display session ID when available
+        //Display session ID when available
         window.addEventListener('hashchange', () => {
             const sessionId = window.location.hash.split('#')[1];
             if (sessionId) {
@@ -281,7 +283,7 @@
             }
         });
 
-        // Display session ID on load if present
+        //Display session ID on load if present
         window.addEventListener('load', () => {
             const sessionId = window.location.hash.split('#')[1];
             if (sessionId) {
@@ -290,7 +292,7 @@
             }
         });
 
-        // Add VS divider between players when we have 2 players
+        //Add VS divider between players when we have 2 players
         function updateGameLayout() {
             const gameArea = document.getElementById('game-area');
             const players = gameArea.querySelectorAll('.player');
@@ -303,7 +305,7 @@
             }
         }
 
-        // Check for layout updates periodically
+        //Check for layout updates periodically
         setInterval(updateGameLayout, 1000);
     </script>
 </body>

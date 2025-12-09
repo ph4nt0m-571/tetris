@@ -19,39 +19,39 @@ const gameSessions = new Map();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create HTTP server
+//Create HTTP server
 const server = http.createServer(app);
 
-// Create WebSocket server on same port
+//Create WebSocket server on same port
 const wss = new WebSocket.Server({ server });
 
-// Middleware
+//Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
+//Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/client', express.static(path.join(__dirname, '../client')));
 app.use('/audio', express.static(path.join(__dirname, '../audio')));
 
-// API Routes
+//API Routes
 app.use('/api', authRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', statsRoutes);
 
-// Root route
+//Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
-// Health check
+//Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// 404 handler
+//404 handler
 app.use((req, res) => {
     res.status(404).json({
         status: 'error',
@@ -59,7 +59,7 @@ app.use((req, res) => {
     });
 });
 
-// Error handler
+//Error handler
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
     res.status(500).json({
@@ -68,7 +68,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// WebSocket handling
+//WebSocket handling
 function createId(len = 6, chars = 'abcdefghjkmnopqrstwxyz0123456789') {
     let id = '';
     while (len--) {
@@ -129,7 +129,7 @@ wss.on('connection', (conn) => {
                     type: 'chat-message',
                     username: client.username || 'Unknown',
                     message: data.message
-                }, client); // exclude sender
+                }, client); //exclude sender
             }
             else if (data.type === 'start-game') {
                 const players = Array.from(lobbyClients.values()).slice(0, 2);
@@ -138,11 +138,11 @@ wss.on('connection', (conn) => {
                     const sessionId = createId();
                     const session = new Session(sessionId);
                     sessions.set(sessionId, session);
-                    gameSessions.set(sessionId, true); // Mark as game session
+                    gameSessions.set(sessionId, true); //Mark as game session
 
                     console.log(`Starting game ${sessionId} with ${players[0].username} and ${players[1].username}`);
 
-                    // Just send them the session ID - they'll join when they redirect
+                    //Just send them the session ID - they'll join when they redirect
                     players.forEach(player => {
                         player.send({
                             type: 'game-start',
@@ -170,7 +170,7 @@ wss.on('connection', (conn) => {
             else if (data.type === 'join-session') {
                 const session = sessions.get(data.id);
                 if (session) {
-                    // If client is in lobby, remove from lobby
+                    //If client is in lobby, remove from lobby
                     if (client.inLobby) {
                         lobbyClients.delete(client.id);
                         client.inLobby = false;
@@ -215,20 +215,20 @@ wss.on('connection', (conn) => {
                     const allPlayers = Array.from(session.clients);
                     const alivePlayers = allPlayers.filter(c => c.isAlive);
                     
-                    // Broadcast death to other players
+                    //Broadcast death to other players
                     client.broadcast({
                         type: 'player-died',
                         playerId: client.id
                     });
                     
-                    // Game over if only one player alive or all dead
+                    //Game over if only one player alive or all dead
                     if (alivePlayers.length <= 1) {
                         const winner = alivePlayers[0] || null;
                         const loser = allPlayers.find(c => !c.isAlive);
                         
                         console.log(`Game over! Winner: ${winner ? winner.username : 'None'}`);
                         
-                        // Send game-over to all players
+                        //Send game-over to all players
                         session.clients.forEach(c => {
                             const winnerData = winner ? {
                                 id: winner.id,
@@ -248,7 +248,7 @@ wss.on('connection', (conn) => {
                             });
                         });
                         
-                        // Clean up after 5 seconds
+                        //Clean up after 5 seconds
                         setTimeout(() => {
                             session.clients.forEach(c => {
                                 c.send({ type: 'return-to-lobby' });
@@ -276,7 +276,7 @@ wss.on('connection', (conn) => {
         
         const session = client.session;
         if (session) {
-            // If player disconnects during game, they lose
+            //If player disconnects during game, they lose
             if (client.isAlive && gameSessions.has(session.id)) {
                 client.isAlive = false;
                 const alivePlayers = Array.from(session.clients).filter(c => c.isAlive && c !== client);
@@ -331,7 +331,7 @@ wss.on('connection', (conn) => {
     });
 });
 
-// Start server
+//Start server
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`HTTP: http://localhost:${PORT}`);

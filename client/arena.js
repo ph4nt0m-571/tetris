@@ -31,7 +31,7 @@ sweep()
         linesCleared++;
     }
     
-    // Return both score and lines cleared
+    //Return both score and lines cleared
     return { score, linesCleared };
 }
 
@@ -67,13 +67,13 @@ collide(player){
 }
 
 addGarbage(lines){
-    // Remove top rows
+    //Remove top rows
     this.matrix.splice(0, lines);
     
-    // Add garbage rows at bottom
+    //Add garbage rows at bottom
     for(let i = 0; i < lines; i++){
-        const garbageRow = new Array(this.matrix[0].length).fill(8); // 8 = garbage color
-        // Add one random hole in each garbage line
+        const garbageRow = new Array(this.matrix[0].length).fill(8);
+        //Add one random hole in each garbage line
         const holePos = Math.floor(Math.random() * this.matrix[0].length);
         garbageRow[holePos] = 0;
         this.matrix.push(garbageRow);

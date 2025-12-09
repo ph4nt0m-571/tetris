@@ -2,17 +2,17 @@ const tetrisManager = new TetrisManager(document);
 const localTetris = tetrisManager.createPlayer();
 localTetris.element.classList.add('local');
 
-// Update label for local player
+//Update label for local player
 const localLabel = localTetris.element.querySelector('.player-label');
 if (localLabel) {
     localLabel.textContent = 'You';
 }
 
-// Start the local game
+//Start the local game
 localTetris.run();
 
 const connectionManager = new ConnectionManager(tetrisManager);
-// Connect without specifying address - will use same port as HTTP
+//Connect without specifying address - will use same port as HTTP
 connectionManager.connect();
 connectionManager.localTetris = localTetris;
 

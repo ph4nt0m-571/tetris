@@ -3,12 +3,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 
-// User Registration
+//User Registration
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // Validation
+        //Validation
         if (!username || !email || !password) {
             return res.status(400).json({
                 status: 'error',
@@ -16,7 +16,7 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Check if username exists
+        //Check if username exists
         if (await User.usernameExists(username)) {
             return res.status(409).json({
                 status: 'error',
@@ -24,7 +24,7 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Check if email exists
+        //Check if email exists
         if (await User.emailExists(email)) {
             return res.status(409).json({
                 status: 'error',
@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Create user
+        //Create user
         const userId = await User.create(username, email, password);
 
         res.status(201).json({
@@ -49,12 +49,12 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// User Login
+//User Login
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // Validation
+        //Validation
         if (!username || !password) {
             return res.status(400).json({
                 status: 'error',
@@ -62,7 +62,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Find user
+        //Find user
         const user = await User.findByUsername(username);
         if (!user) {
             return res.status(401).json({
@@ -71,7 +71,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Verify password
+        //Verify password
         const isValid = await User.verifyPassword(password, user.password);
         if (!isValid) {
             return res.status(401).json({
@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Generate JWT
+        //Generate JWT
         const token = jwt.sign(
             { id: user.id, username: user.username },
             process.env.JWT_SECRET,

@@ -18,13 +18,13 @@ class Player{
     this.pos = {x:0, y:0};
     this.matrix = null;
     this.score= 0;
-    this.gameActive = true; // Track if game is active
+    this.gameActive = true; //Track if game is active
 
     this.reset();
     }
 
     move(dir){
-    if (!this.gameActive) return; // Don't move if game over
+    if (!this.gameActive) return; //Don't move if game over
     
     this.pos.x += dir;
     if(this.arena.collide(this)){
@@ -43,13 +43,13 @@ class Player{
     (this.matrix[0].length / 2 | 0);
 
     if (this.arena.collide(this) && this.score > 0){
-        // Game over - player topped out
+        //Game over - player topped out
         console.log('Game over - topped out!');
-        this.gameActive = false; // Stop game
+        this.gameActive = false; //Stop game
         
-        // Emit game over event
+        //Emit game over event
         this.events.emit('game-over');
-        return; // Don't emit pos/matrix if game is over
+        return; //Don't emit pos/matrix if game is over
     }
 
     this.events.emit('pos', this.pos);
@@ -109,7 +109,7 @@ class Player{
             const sweepResult = this.arena.sweep();
             this.score += sweepResult.score;
             
-            // Emit score with lines cleared info
+            //Emit score with lines cleared info
             this.events.emit('score', this.score, sweepResult.linesCleared);
             this.tetris.updateScore(this.score);
         }

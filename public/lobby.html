@@ -215,7 +215,7 @@
         let myClientId = null;
 
         function connectToLobby() {
-            // Connect to WebSocket on same port as HTTP server
+            //Connect to WebSocket on same port as HTTP server
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}`;
             
@@ -245,7 +245,7 @@
                         break;
                     case 'game-start':
                         console.log('Game starting, joining session:', data.sessionId);
-                        // Close websocket before redirect to prevent reconnection
+                        //Close websocket before redirect to prevent reconnection
                         ws.close();
                         window.location.href = `index.html#${data.sessionId}`;
                         break;
@@ -254,7 +254,7 @@
 
             ws.addEventListener('close', () => {
                 console.log('Disconnected from lobby');
-                setTimeout(connectToLobby, 2000); // Reconnect
+                setTimeout(connectToLobby, 2000); //Reconnect
             });
 
             ws.addEventListener('error', (error) => {
@@ -279,7 +279,7 @@
                 playersList.appendChild(playerDiv);
             });
 
-            // Enable start button if 2 or more players
+            //Enable start button if 2 or more players
             const startBtn = document.getElementById('start-game-btn');
             if (players.length >= 2) {
                 startBtn.disabled = false;
@@ -293,7 +293,7 @@
         function displayChatMessage(username, message) {
             const messagesDiv = document.getElementById('chat-messages');
             
-            // Remove waiting message
+            //Remove waiting message
             const waitingMsg = messagesDiv.querySelector('.waiting-message');
             if (waitingMsg) {
                 waitingMsg.remove();
@@ -316,7 +316,7 @@
             if (message && ws && ws.readyState === WebSocket.OPEN) {
                 displayChatMessage(user.username, message);
                 
-                // Then send to server (server won't echo back)
+                //Then send to server (server won't echo back)
                 ws.send(JSON.stringify({
                     type: 'chat-message',
                     message: message
@@ -346,7 +346,7 @@
             window.location.href = 'home.html';
         }
 
-        // Connect on page load
+        //Connect on page load
         connectToLobby();
     </script>
 </body>

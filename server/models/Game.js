@@ -9,7 +9,7 @@ class Game {
         
         const gameId = result.insertId;
         
-        // Initialize game states for both players
+        //Initialize game states for both players
         const emptyGrid = JSON.stringify(Array(20).fill(null).map(() => Array(12).fill(0)));
         
         await db.execute(
@@ -102,7 +102,7 @@ class Game {
             [gridJson, newScore, gameId, playerId]
         );
 
-        // Record the move
+        //Record the move
         const moveData = JSON.stringify({ grid, linesCleared, combo });
         await db.execute(
             'INSERT INTO moves (game_id, player_id, move_data, lines_cleared, combo) VALUES (?, ?, ?, ?, ?)',

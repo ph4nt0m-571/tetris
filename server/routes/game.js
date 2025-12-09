@@ -4,12 +4,12 @@ const User = require('../models/User');
 const authenticateToken = require('../middleware/auth');
 const router = express.Router();
 
-// Start Game
+//Start Game
 router.post('/start_game', authenticateToken, async (req, res) => {
     try {
         const { player_1_id, player_2_id } = req.body;
 
-        // Validation
+        //Validation
         if (!player_1_id || !player_2_id) {
             return res.status(400).json({
                 status: 'error',
@@ -17,7 +17,7 @@ router.post('/start_game', authenticateToken, async (req, res) => {
             });
         }
 
-        // Check if players exist
+        //Check if players exist
         const player1 = await User.findById(player_1_id);
         const player2 = await User.findById(player_2_id);
 
@@ -28,7 +28,7 @@ router.post('/start_game', authenticateToken, async (req, res) => {
             });
         }
 
-        // Check for active game
+        //Check for active game
         const activeGame = await Game.getActiveGameForPlayers(player_1_id, player_2_id);
         if (activeGame) {
             return res.status(409).json({
@@ -38,7 +38,7 @@ router.post('/start_game', authenticateToken, async (req, res) => {
             });
         }
 
-        // Create game
+        //Create game
         const gameId = await Game.create(player_1_id, player_2_id);
 
         res.status(201).json({
@@ -54,12 +54,12 @@ router.post('/start_game', authenticateToken, async (req, res) => {
     }
 });
 
-// Submit Player Move
+//Submit Player Move
 router.post('/move', authenticateToken, async (req, res) => {
     try {
         const { game_id, player_id, grid, lines_cleared, combo } = req.body;
 
-        // Validation
+        //Validation
         if (!game_id || !player_id || !grid) {
             return res.status(400).json({
                 status: 'error',
@@ -67,7 +67,7 @@ router.post('/move', authenticateToken, async (req, res) => {
             });
         }
 
-        // Check if player is in game
+        //Check if player is in game
         const isInGame = await Game.isPlayerInGame(game_id, player_id);
         if (!isInGame) {
             return res.status(403).json({
@@ -76,7 +76,7 @@ router.post('/move', authenticateToken, async (req, res) => {
             });
         }
 
-        // Check game status
+        //Check game status
         const game = await Game.findById(game_id);
         if (game.status === 'finished') {
             return res.status(409).json({
@@ -85,7 +85,7 @@ router.post('/move', authenticateToken, async (req, res) => {
             });
         }
 
-        // Validate grid format
+        //Validate grid format
         if (!Array.isArray(grid) || grid.length !== 20 || !grid[0] || grid[0].length !== 12) {
             return res.status(422).json({
                 status: 'error',
@@ -93,10 +93,10 @@ router.post('/move', authenticateToken, async (req, res) => {
             });
         }
 
-        // Update player state
+        //Update player state
         await Game.updatePlayerState(game_id, player_id, grid, lines_cleared || 0, combo || 0);
 
-        // Update game status to playing if it was waiting
+        //Update game status to playing if it was waiting
         if (game.status === 'waiting') {
             await Game.updateStatus(game_id, 'playing');
         }
@@ -114,12 +114,12 @@ router.post('/move', authenticateToken, async (req, res) => {
     }
 });
 
-// Get Game State
+//Get Game State
 router.get('/game-state/:game_id/:player_id', authenticateToken, async (req, res) => {
     try {
         const { game_id, player_id } = req.params;
 
-        // Check if player is in game
+        //Check if player is in game
         const isInGame = await Game.isPlayerInGame(parseInt(game_id), parseInt(player_id));
         if (!isInGame) {
             return res.status(403).json({
@@ -128,7 +128,7 @@ router.get('/game-state/:game_id/:player_id', authenticateToken, async (req, res
             });
         }
 
-        // Get game state
+        //Get game state
         const gameState = await Game.getGameState(parseInt(game_id), parseInt(player_id));
         if (!gameState) {
             return res.status(404).json({
@@ -147,7 +147,7 @@ router.get('/game-state/:game_id/:player_id', authenticateToken, async (req, res
     }
 });
 
-// End Game
+//End Game
 router.post('/end_game', authenticateToken, async (req, res) => {
     try {
         const { game_id, winner_id } = req.body;

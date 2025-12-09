@@ -3,7 +3,7 @@ const db = require('../config/database');
 const authenticateToken = require('../middleware/auth');
 const router = express.Router();
 
-// Get Player Statistics
+//Get Player Statistics
 router.get('/stats/:userId', authenticateToken, async (req, res) => {
     try {
         const { userId } = req.params;

@@ -58,7 +58,7 @@ server.on('connection', conn => {
                 client.broadcast(data);
             }
         } else if (data.type === 'chat-message') {
-            // Handle chat messages via WebSocket
+            //Handle chat messages via WebSocket
             if (client.session) {
                 client.broadcast({
                     type: 'chat-message',

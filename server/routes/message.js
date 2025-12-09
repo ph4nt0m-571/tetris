@@ -4,12 +4,12 @@ const Game = require('../models/Game');
 const authenticateToken = require('../middleware/auth');
 const router = express.Router();
 
-// Send Chat Message
+//Send Chat Message
 router.post('/message', authenticateToken, async (req, res) => {
     try {
         const { sender_id, game_id, message } = req.body;
 
-        // Validation
+        //Validation
         if (!sender_id || !message || message.trim() === '') {
             return res.status(400).json({
                 status: 'error',
@@ -17,7 +17,7 @@ router.post('/message', authenticateToken, async (req, res) => {
             });
         }
 
-        // Verify sender is authenticated user
+        //Verify sender is authenticated user
         if (req.user.id !== sender_id) {
             return res.status(403).json({
                 status: 'error',
@@ -25,7 +25,7 @@ router.post('/message', authenticateToken, async (req, res) => {
             });
         }
 
-        // If game_id provided, verify player is in game
+        //If game_id provided, verify player is in game
         if (game_id) {
             const isInGame = await Game.isPlayerInGame(game_id, sender_id);
             if (!isInGame) {
@@ -36,7 +36,7 @@ router.post('/message', authenticateToken, async (req, res) => {
             }
         }
 
-        // Create message
+        //Create message
         await Message.create(sender_id, game_id, message);
 
         res.status(200).json({
@@ -52,7 +52,7 @@ router.post('/message', authenticateToken, async (req, res) => {
     }
 });
 
-// Get Game Messages
+//Get Game Messages
 router.get('/messages/:game_id', authenticateToken, async (req, res) => {
     try {
         const { game_id } = req.params;
@@ -72,7 +72,7 @@ router.get('/messages/:game_id', authenticateToken, async (req, res) => {
     }
 });
 
-// Get Lobby Messages
+//Get Lobby Messages
 router.get('/lobby-messages', authenticateToken, async (req, res) => {
     try {
         const messages = await Message.getLobbyMessages();

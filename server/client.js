@@ -25,7 +25,7 @@ class Client{
     }
 
     send(data){
-        if (this.conn.readyState === 1) { // WebSocket.OPEN
+        if (this.conn.readyState === 1) { //WebSocket.OPEN
             const msg = JSON.stringify(data);
             console.log(`Sending message to client ${this.id}: ${msg.substring(0, 100)}...`);
             this.conn.send(msg, function ack(err){

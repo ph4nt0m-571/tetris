@@ -47,11 +47,11 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Store token and user info
+                    //Store token and user info
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
-                    // Redirect to home page instead of game
+                    //Redirect to home page instead of game
                     window.location.href = 'home.html';
                 } else {
                     errorDiv.textContent = data.message || 'Login failed';

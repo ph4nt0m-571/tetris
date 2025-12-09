@@ -8,7 +8,7 @@ class ConnectionManager{
     }
 
     connect(address){
-        // If no address provided, use same host/port as HTTP
+        //If no address provided, use same host/port as HTTP
         if (!address) {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             address = `${protocol}//${window.location.host}`;
@@ -48,7 +48,7 @@ class ConnectionManager{
         
         if(sessionId){
             console.log('Joining session from URL:', sessionId);
-            // Always try to join existing session first
+            //Always try to join existing session first
             this.send({
                 type: 'join-session',
                 id: sessionId,
@@ -66,7 +66,7 @@ class ConnectionManager{
     watchEvents(){
         const player = this.localTetris.player;
         
-        // Watch position changes
+        //Watch position changes
         player.events.listen('pos', value => {
             this.send({
                 type: 'state-update',
@@ -75,7 +75,7 @@ class ConnectionManager{
             });
         });
         
-        // Watch matrix changes
+        //Watch matrix changes
         player.events.listen('matrix', value => {
             this.send({
                 type: 'state-update',
@@ -95,9 +95,9 @@ class ConnectionManager{
         
         player.events.listen('game-over', () => {
             console.log('Local player died!');
-            isLocalPlayerAlive = false; // Set global flag
+            isLocalPlayerAlive = false; 
             
-            // Notify server
+            //Notify server
             this.send({
                 type: 'player-died'
             });
@@ -123,20 +123,22 @@ class ConnectionManager{
             if(!this.peers.has(client.id)){
                 const tetris = this.tetrisManager.createPlayer();
                 
-                // Mark as remote player
+                //Mark as remote player
                 tetris.element.classList.add('remote');
                 tetris.element.classList.remove('local');
                 
-                // Update player label to show opponent
+                //Update player label to show opponent
                 const label = tetris.element.querySelector('.player-label');
                 if (label) {
                     label.textContent = 'Opponent';
                 }
                 
-                // Unserialize the state
-                tetris.unserialize(client.state);
+                //Only unserialize if state exists and is valid
+                if (client.state && client.state.arena && client.state.player) {
+                    tetris.unserialize(client.state);
+                }
                 
-                // Add to peers map
+                //Add to peers map
                 this.peers.set(client.id, tetris);
                 
                 console.log('Created opponent player view');
@@ -164,13 +166,13 @@ class ConnectionManager{
 
         const tetris = this.peers.get(id);
         
-        // Update the state
+        //Update the state
         tetris[fragment][prop] = value;
 
         if(prop === 'score'){
             tetris.updateScore(value);
         } else {
-            // Redraw the opponent's board
+            //Redraw the opponent's board
             tetris.draw();
         }
     }
@@ -192,7 +194,7 @@ class ConnectionManager{
         } 
         else if(data.type === 'session-error'){
             console.error('Session error:', data.message);
-            // Don't auto-create session, go back to lobby
+            //Don't auto-create session, go back to lobby
             alert('Could not join game session. Returning to lobby...');
             window.location.href = 'lobby.html';
         }
@@ -213,7 +215,7 @@ class ConnectionManager{
         }
         else if(data.type === 'game-over'){
             console.log('Game over!', data.winner);
-            // Stop local game
+            //Stop local game
             this.localTetris.player.gameActive = false;
             this.showGameOverScreen(data.winner, data.loser);
         }
@@ -277,7 +279,7 @@ class ConnectionManager{
                 ${isWinner ? 'VICTORY!' : 'DEFEAT'}
             </div>
             <div style="font-size: 2em; margin-bottom: 20px;">
-                Winner: ${winner ? winner.username : 'None'}
+                Winner: ${winner ? winner.username : ''}
             </div>
             <div style="font-size: 1.5em; margin-bottom: 40px;">
                 Final Score: ${winner ? winner.score : 0}
