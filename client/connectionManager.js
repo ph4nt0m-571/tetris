@@ -43,25 +43,32 @@ class ConnectionManager{
     }
     
     initSession(){
-        const sessionId = window.location.hash.split('#')[1];
-        const state = this.localTetris.serialize();
-        
-        if(sessionId){
-            console.log('Joining session from URL:', sessionId);
-            //Always try to join existing session first
-            this.send({
-                type: 'join-session',
-                id: sessionId,
-                state,
-            });
-        }else{
-            console.log('Creating new session');
-            this.send({
-                type:'create-session',
-                state,
-            });
-        }
+    const sessionId = window.location.hash.split('#')[1];
+    const state = this.localTetris.serialize();
+    
+    //Get user info from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if(sessionId){
+        console.log('Joining session from URL:', sessionId);
+        //Send user info along with join request
+        this.send({
+            type: 'join-session',
+            id: sessionId,
+            state,
+            username: user.username,
+            userId: user.id
+        });
+    }else{
+        console.log('Creating new session');
+        this.send({
+            type:'create-session',
+            state,
+            username: user.username,
+            userId: user.id
+        });
     }
+}
 
     watchEvents(){
         const player = this.localTetris.player;
@@ -214,9 +221,20 @@ class ConnectionManager{
             }
         }
         else if(data.type === 'game-over'){
-            console.log('Game over!', data.winner);
+            console.log('Game over received!', 'Winner:', data.winner, 'Loser:', data.loser);
+            
             //Stop local game
             this.localTetris.player.gameActive = false;
+            
+            //Verify we have winner data
+            if (!data.winner) {
+                console.error('No winner data received!');
+                alert('Game ended but no winner determined');
+                window.location.href = 'lobby.html';
+                return;
+            }
+            
+            //Show the appropriate screen
             this.showGameOverScreen(data.winner, data.loser);
         }
         else if(data.type === 'return-to-lobby'){
@@ -253,69 +271,71 @@ class ConnectionManager{
         document.body.appendChild(overlay);
     }
     
-    showGameOverScreen(winner, loser){
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        //Check if current user is the winner by comparing userId or username
-        const isWinner = winner && (
-            (winner.userId && winner.userId === user.id) || 
-            (winner.username === user.username)
-        );
+    
+showGameOverScreen(winner, loser){
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    const isWinner = winner && (
+        (winner.userId && winner.userId === user.id) || 
+        (winner.username === user.username)
+    );
+    
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+        text-align: center;
+    `;
+    
+    if (isWinner) {
+        //WINNER SCREEN - Show winner's own score
+        const myScore = winner.score || (this.localTetris && this.localTetris.player ? this.localTetris.player.score : 0);
         
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            color: white;
-            text-align: center;
+        overlay.innerHTML = `
+            <div style="font-size: 4em; font-weight: bold; margin-bottom: 20px; color: #0f0;">
+                WINNER!
+            </div>
+            <div style="font-size: 2em; margin-bottom: 20px;">
+                ${user.username}
+            </div>
+            <div style="font-size: 1.5em; margin-bottom: 40px;">
+                Your Score: ${myScore}
+            </div>
+            <div style="font-size: 1.2em; color: #aaa;">
+                Returning to lobby in 5 seconds...
+            </div>
         `;
+    } else {
+        //DEFEAT SCREEN - Show loser's own score and winner's name
+        const myScore = this.localTetris && this.localTetris.player ? this.localTetris.player.score : 0;
+        const winnerName = winner ? winner.username : 'Unknown';
         
-        //Different screens for winner vs loser
-        if (isWinner) {
-            //WINNER SCREEN
-            overlay.innerHTML = `
-                <div style="font-size: 4em; font-weight: bold; margin-bottom: 20px; color: #0f0;">
-                    WINNER!
-                </div>
-                <div style="font-size: 2em; margin-bottom: 20px;">
-                    ${user.username}
-                </div>
-                <div style="font-size: 1.5em; margin-bottom: 40px;">
-                    Your Score: ${winner ? winner.score : 0}
-                </div>
-                <div style="font-size: 1.2em; color: #aaa;">
-                    Returning to lobby in 5 seconds...
-                </div>
-            `;
-        } else {
-            //DEFEAT SCREEN
-            const myScore = loser && loser.userId === user.id ? 
-                (this.localTetris && this.localTetris.player ? this.localTetris.player.score : 0) : 0;
-            
-            overlay.innerHTML = `
-                <div style="font-size: 4em; font-weight: bold; margin-bottom: 20px; color: #ff6b6b;">
-                    DEFEAT
-                </div>
-                <div style="font-size: 1.5em; margin-bottom: 20px;">
-                    Your Score: ${myScore}
-                </div>
-                <div style="font-size: 2em; margin-bottom: 40px; color: #ffa500;">
-                    Defeated by: ${winner ? winner.username : 'Unknown'}
-                </div>
-                <div style="font-size: 1.2em; color: #aaa;">
-                    Returning to lobby in 5 seconds...
-                </div>
-            `;
-        }
-        
-        document.body.appendChild(overlay);
+        overlay.innerHTML = `
+            <div style="font-size: 4em; font-weight: bold; margin-bottom: 20px; color: #ff6b6b;">
+                DEFEAT
+            </div>
+            <div style="font-size: 1.5em; margin-bottom: 20px;">
+                Your Score: ${myScore}
+            </div>
+            <div style="font-size: 2em; margin-bottom: 40px; color: #ffa500;">
+                Defeated by: ${winnerName}
+            </div>
+            <div style="font-size: 1.2em; color: #aaa;">
+                Returning to lobby in 5 seconds...
+            </div>
+        `;
     }
+    
+    document.body.appendChild(overlay);
+}
 }

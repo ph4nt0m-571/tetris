@@ -159,28 +159,46 @@ wss.on('connection', (conn) => {
             else if (data.type === 'create-session') {
                 const session = new Session(createId());
                 sessions.set(session.id, session);
+                
+                if (data.username) {
+                    client.username = data.username;
+                }
+                if (data.userId) {
+                    client.userId = data.userId;
+                }
+                
                 session.join(client);
                 client.isAlive = true;
                 client.state = data.state;
+                
+                console.log(`${client.username || client.id} (userId: ${client.userId}) created session ${session.id}`);
+                
                 client.send({
                     type: 'session-created',
                     id: session.id,
                 });
-            } 
+            }
             else if (data.type === 'join-session') {
                 const session = sessions.get(data.id);
                 if (session) {
-                    //If client is in lobby, remove from lobby
                     if (client.inLobby) {
                         lobbyClients.delete(client.id);
                         client.inLobby = false;
                         broadcastLobbyState();
                     }
                     
+                    if (data.username) {
+                        client.username = data.username;
+                    }
+                    if (data.userId) {
+                        client.userId = data.userId;
+                    }
+                    
                     session.join(client);
                     client.isAlive = true;
                     client.state = data.state;
-                    console.log(`${client.username || client.id} joined session ${data.id}`);
+                    
+                    console.log(`${client.username || client.id} (userId: ${client.userId}) joined session ${data.id}`);
                 } else {
                     console.error('Session not found:', data.id);
                     client.send({
@@ -188,7 +206,7 @@ wss.on('connection', (conn) => {
                         message: 'Session not found'
                     });
                 }
-            } 
+            }
             else if (data.type === 'state-update') {
                 if (client.isAlive && client.state && client.state[data.fragment]) {
                     const [prop, value] = data.state;
@@ -215,32 +233,38 @@ wss.on('connection', (conn) => {
                     const allPlayers = Array.from(session.clients);
                     const alivePlayers = allPlayers.filter(c => c.isAlive);
                     
+                    //Broadcast that this player died
                     client.broadcast({
                         type: 'player-died',
                         playerId: client.id
                     });
                     
+                    //Check if game is over
                     if (allPlayers.length === 2) {
+                        const deadPlayer = client; //The player who just died
                         const winner = alivePlayers[0] || null;
-                        const loser = client; //The player who just died is the loser
                         
-                        console.log(`Game over! Winner: ${winner ? winner.username : 'None'}`);
+                        console.log(`Game over! Winner: ${winner ? winner.username : 'None'}, Loser: ${deadPlayer.username}`);
                         
-                        //Send game-over to all players with complete data
+                        //Prepare complete winner and loser data
+                        const winnerData = winner ? {
+                            id: winner.id,
+                            username: winner.username,
+                            userId: winner.userId,
+                            score: winner.state && winner.state.player ? winner.state.player.score : 0
+                        } : null;
+                        
+                        const loserData = {
+                            id: deadPlayer.id,
+                            username: deadPlayer.username,
+                            userId: deadPlayer.userId,
+                            score: deadPlayer.state && deadPlayer.state.player ? deadPlayer.state.player.score : 0
+                        };
+                        
+                        console.log('Sending game-over with winner:', winnerData, 'loser:', loserData);
+                        
+                        //Send game-over to ALL players in session
                         session.clients.forEach(c => {
-                            const winnerData = winner ? {
-                                id: winner.id,
-                                username: winner.username,
-                                userId: winner.userId,
-                                score: winner.state && winner.state.player ? winner.state.player.score : 0
-                            } : null;
-                            
-                            const loserData = {
-                                id: loser.id,
-                                username: loser.username,
-                                userId: loser.userId
-                            };
-                            
                             c.send({
                                 type: 'game-over',
                                 winner: winnerData,
