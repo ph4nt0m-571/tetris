@@ -5,6 +5,8 @@ const http = require('http');
 const WebSocket = require('ws');
 require('dotenv').config();
 
+const db = require('./config/database');
+
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
 const messageRoutes = require('./routes/message');
@@ -226,7 +228,7 @@ wss.on('connection', (conn) => {
             }
             else if (data.type === 'player-died') {
                 client.isAlive = false;
-                console.log(`Player ${client.username} died`);
+                console.log(`Player ${client.username} (ID: ${client.userId}) died`);
                 
                 const session = client.session;
                 if (session) {
@@ -241,10 +243,10 @@ wss.on('connection', (conn) => {
                     
                     //Check if game is over
                     if (allPlayers.length === 2) {
-                        const deadPlayer = client; //The player who just died
+                        const deadPlayer = client;
                         const winner = alivePlayers[0] || null;
                         
-                        console.log(`Game over! Winner: ${winner ? winner.username : 'None'}, Loser: ${deadPlayer.username}`);
+                        console.log(`Game over! Winner: ${winner ? winner.username : 'None'} (ID: ${winner ? winner.userId : 'N/A'}), Loser: ${deadPlayer.username} (ID: ${deadPlayer.userId})`);
                         
                         //Prepare complete winner and loser data
                         const winnerData = winner ? {
@@ -260,6 +262,42 @@ wss.on('connection', (conn) => {
                             userId: deadPlayer.userId,
                             score: deadPlayer.state && deadPlayer.state.player ? deadPlayer.state.player.score : 0
                         };
+                        
+                        (async () => {
+                            try {
+                                if (winnerData && winnerData.userId && loserData.userId) {
+                                    console.log(`Saving game to database - Winner ID: ${winnerData.userId}, Loser ID: ${loserData.userId}`);
+                                    
+                                    //Insert game record
+                                    const [gameResult] = await db.execute(
+                                        'INSERT INTO games (player_1_id, player_2_id, status, winner_id, ended_at) VALUES (?, ?, ?, ?, NOW())',
+                                        [winnerData.userId, loserData.userId, 'finished', winnerData.userId]
+                                    );
+                                    
+                                    console.log(`✓ Game saved successfully with ID: ${gameResult.insertId}`);
+                                    
+                                    //Save game states
+                                    const gameId = gameResult.insertId;
+                                    const emptyGrid = JSON.stringify(Array(20).fill(null).map(() => Array(12).fill(0)));
+                                    
+                                    await db.execute(
+                                        'INSERT INTO game_states (game_id, player_id, grid, score, is_alive) VALUES (?, ?, ?, ?, ?)',
+                                        [gameId, winnerData.userId, emptyGrid, winnerData.score, true]
+                                    );
+                                    
+                                    await db.execute(
+                                        'INSERT INTO game_states (game_id, player_id, grid, score, is_alive) VALUES (?, ?, ?, ?, ?)',
+                                        [gameId, loserData.userId, emptyGrid, loserData.score, false]
+                                    );
+                                    
+                                    console.log(`✓ Game states saved for game ${gameId}`);
+                                } else {
+                                    console.error('Cannot save game - missing userId:', { winnerData, loserData });
+                                }
+                            } catch (err) {
+                                console.error('Failed to save game to database:', err);
+                            }
+                        })();
                         
                         console.log('Sending game-over with winner:', winnerData, 'loser:', loserData);
                         
@@ -307,19 +345,56 @@ wss.on('connection', (conn) => {
                 
                 if (alivePlayers.length === 1) {
                     const winner = alivePlayers[0];
+                    
+                    const winnerData = {
+                        id: winner.id,
+                        username: winner.username,
+                        userId: winner.userId,
+                        score: winner.state && winner.state.player ? winner.state.player.score : 0
+                    };
+                    
+                    const loserData = {
+                        id: client.id,
+                        username: client.username,
+                        userId: client.userId,
+                        score: client.state && client.state.player ? client.state.player.score : 0
+                    };
+                    
+                    (async () => {
+                        try {
+                            if (winnerData.userId && loserData.userId) {
+                                console.log(`Saving game to database (disconnect) - Winner ID: ${winnerData.userId}, Loser ID: ${loserData.userId}`);
+                                
+                                const [gameResult] = await db.execute(
+                                    'INSERT INTO games (player_1_id, player_2_id, status, winner_id, ended_at) VALUES (?, ?, ?, ?, NOW())',
+                                    [winnerData.userId, loserData.userId, 'finished', winnerData.userId]
+                                );
+                                
+                                console.log(`✓ Game saved on disconnect with ID: ${gameResult.insertId}`);
+                                
+                                //Save game states
+                                const gameId = gameResult.insertId;
+                                const emptyGrid = JSON.stringify(Array(20).fill(null).map(() => Array(12).fill(0)));
+                                
+                                await db.execute(
+                                    'INSERT INTO game_states (game_id, player_id, grid, score, is_alive) VALUES (?, ?, ?, ?, ?)',
+                                    [gameId, winnerData.userId, emptyGrid, winnerData.score, true]
+                                );
+                                
+                                await db.execute(
+                                    'INSERT INTO game_states (game_id, player_id, grid, score, is_alive) VALUES (?, ?, ?, ?, ?)',
+                                    [gameId, loserData.userId, emptyGrid, loserData.score, false]
+                                );
+                                
+                                console.log(`✓ Game states saved on disconnect for game ${gameId}`);
+                            }
+                        } catch (err) {
+                            console.error('Failed to save game on disconnect:', err);
+                        }
+                    })();
+                    
                     session.clients.forEach(c => {
                         if (c !== client) {
-                            const winnerData = {
-                                id: winner.id,
-                                username: winner.username,
-                                score: winner.state && winner.state.player ? winner.state.player.score : 0
-                            };
-                            
-                            const loserData = {
-                                id: client.id,
-                                username: client.username
-                            };
-                            
                             c.send({
                                 type: 'game-over',
                                 winner: winnerData,
