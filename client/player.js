@@ -42,7 +42,7 @@ class Player{
     this.pos.x = (this.arena.matrix[0].length / 2 | 0) -
     (this.matrix[0].length / 2 | 0);
 
-    if (this.arena.collide(this) && this.score > 0){
+    if (this.arena.collide(this)){
         //Game over - player topped out
         console.log('Game over - topped out!');
         this.gameActive = false; //Stop game

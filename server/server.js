@@ -215,31 +215,31 @@ wss.on('connection', (conn) => {
                     const allPlayers = Array.from(session.clients);
                     const alivePlayers = allPlayers.filter(c => c.isAlive);
                     
-                    //Broadcast death to other players
                     client.broadcast({
                         type: 'player-died',
                         playerId: client.id
                     });
                     
-                    //Game over if only one player alive or all dead
-                    if (alivePlayers.length <= 1) {
+                    if (allPlayers.length === 2) {
                         const winner = alivePlayers[0] || null;
-                        const loser = allPlayers.find(c => !c.isAlive);
+                        const loser = client; //The player who just died is the loser
                         
                         console.log(`Game over! Winner: ${winner ? winner.username : 'None'}`);
                         
-                        //Send game-over to all players
+                        //Send game-over to all players with complete data
                         session.clients.forEach(c => {
                             const winnerData = winner ? {
                                 id: winner.id,
                                 username: winner.username,
+                                userId: winner.userId,
                                 score: winner.state && winner.state.player ? winner.state.player.score : 0
                             } : null;
                             
-                            const loserData = loser ? {
+                            const loserData = {
                                 id: loser.id,
-                                username: loser.username
-                            } : null;
+                                username: loser.username,
+                                userId: loser.userId
+                            };
                             
                             c.send({
                                 type: 'game-over',
